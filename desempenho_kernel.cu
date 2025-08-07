@@ -1,4 +1,3 @@
-// OBS coeffs should be in INCREASING power order
 __forceinline__ __device__ float3 operator+(const float3& a, const float3& b)
 {
     return make_float3(a.x+b.x, a.y+b.y, a.z+b.z);
@@ -44,6 +43,7 @@ __forceinline__ __device__ void RK4(LambdaType dfunc, float3& y0, const float& x
 {
     float dx = xf/100.0f;
 
+    #pragma unroll
     for (int i = 0; i < 100; i++) {
         float3 y_prev = y0;
         float3 k1 = dfunc(y_prev               );
@@ -57,28 +57,29 @@ __forceinline__ __device__ void RK4(LambdaType dfunc, float3& y0, const float& x
 
 extern "C" {
 __global__ void stage_desempenho(
-    float* results,          
-    const float g_acc,
-    const float rho,
-    const float T0,
-    const float a,
-    const float mu,
-    const float b_wing,
-    const float dW_max,
-    const float PV,
-    const float4 wcl_coeffs,
-    const float4 wcd_coeffs,
-    const float* scale_params,
-    const float* const_params,
-    const int* num_vars,
-    int N
+  float* output,
+  const int* num_vars,
+  const float* scale_params,
+  const float* const_params,
+  const float4 wcl_coeffs,
+  const float4 wcd_coeffs,
+  const float g_acc,
+  const float rho,
+  const float T0,
+  const float a,
+  const float mu,
+  const float b_wing,
+  const float dW_max,
+  const float PV,
+  const int N
 ) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
     int remaining_idx = idx;
 
     float* params = new float[N];
     // Loop backwards from the last parameter (least significant) to the first.
+    #pragma unroll
     for (int i = N - 1; i >= 0; --i) {
         // Get the number of variations for the current dimension
         int current_num_vars = num_vars[i];
@@ -88,7 +89,7 @@ __global__ void stage_desempenho(
 
         // Calculate and store the final scaled value
         // We write all N parameters for a given idx contiguously
-        params[i] = const_params[i] + scale_params[i] * individual_index;
+        params[i] = const_params[i] + individual_index * scale_params[i];
 
         // Update the remaining index for the next (more significant) dimension
         remaining_idx /= current_num_vars;
@@ -162,6 +163,7 @@ __global__ void stage_desempenho(
     
     float f_p1 = f(p1);
 
+    #pragma unroll
     for (int i = 0; i < 8; ++i) {
         float p3 = p1 + (p2 - p1) * 0.5f; // More stable than (a+b)/2
         float f_p3 = f(p3);
@@ -193,6 +195,6 @@ __global__ void stage_desempenho(
     // Example scalar function G(F, x, w)
     float result_PF = max(0.0f, PEE - max(0.0, 100.0f*delta_b + ((float) (delta_b > 0.05f) * 20.0f)) - max(0.0f, 0.5f*delta_W));
 
-    results[idx] = result_PF;
-};
+    output[idx] = result_PF;
+}
 }
