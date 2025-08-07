@@ -42,8 +42,7 @@ template <typename LambdaType>
 __forceinline__ __device__ void RK4(LambdaType dfunc, float3& y0, const float& xf)
 {
     float dx = xf/100.0f;
-
-    #pragma unroll
+    // TODO maybe add pragma unroll here if 100 can be lowered
     for (int i = 0; i < 100; i++) {
         float3 y_prev = y0;
         float3 k1 = dfunc(y_prev               );
