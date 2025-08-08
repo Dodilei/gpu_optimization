@@ -59,10 +59,10 @@ __global__ void stage_estabilidade2(
   const float rho,
   const float T0,
   const float a,
-  const float dCLHda_eh,
+  const float dCLHda_eh0,
   const float XACW_norm,
   const float XCG_norm,
-  const float downwash_ratio,
+  const float downwash_ratio0,
   const float amax,
   const float a0,
   const int N
@@ -110,11 +110,11 @@ __global__ void stage_estabilidade2(
 
     const float CMW0_amax = internal_sum(wcm_coeffs*powers3(amax));
 
-    const float MAC = (b/AR);
+    const float MAC = (b_wing/AR);
 
-    const float dCLHda_eh = ef_solo_lift*dCLHda_eh;
+    const float dCLHda_eh = ef_solo_lift*dCLHda_eh0;
 
-    const float downwash_ratio = ef_solo_epsilon*downwash_ratio;
+    const float downwash_ratio = ef_solo_epsilon*downwash_ratio0;
 
     const float ah_amax = (amax + ih) - downwash_ratio*(amax - a0) - propwash_ratio*(amax + ip);
 
