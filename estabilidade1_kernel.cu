@@ -64,6 +64,7 @@ __global__ void stage_estabilidade2(
 ) {
     constexpr float ME = 0.08;
     constexpr float nh0 = 0.9;
+    constexpr float YH_norm = 0.3;
     constexpr float prop_pressure_ratio = 1.5;
     constexpr float propwash_ratio = 0.08;
     constexpr float eh_affected_ratio = 0.5;
