@@ -75,7 +75,7 @@ __global__ void stage_aerodinamica(
   const int N
 ) {
     constexpr float phi = 1.1;
-    constexpr float swet_ratio = 2.0f;
+    constexpr float swet_ratio = 2.62f;
     constexpr float width_fuse_norm = 0.14/2.4;
     const float k_fuse = 1.0f - 2*pow(width_fuse_norm, 2);
     const float fuse_ratio = 1.0f - width_fuse_norm;
