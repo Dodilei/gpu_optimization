@@ -1,4 +1,5 @@
 #define PI 3.14159
+#define DEG2RAD 0.01745329
 
 __forceinline__ __device__ float3 operator+(const float3& a, const float3& b)
 {
@@ -113,7 +114,7 @@ __global__ void stage_aerodinamica(
       const float f_lambda = 0.0524f * pow(afil, 4) - 0.15f * pow(afil, 3) + 0.1659f * pow(afil, 2) - 0.0706f * afil + 0.0119f;
       const float theo_eff = 1.0f/(1.0f+f_lambda*AR);
 
-      const float alpha_var_ratio = 1.0f / (1.0f + (alpha_var_2d / (PI * theo_eff * AR)));
+      const float alpha_var_ratio = 1.0f / (DEG2RAD * (1.0f + (alpha_var_2d * DEG2RAD / (PI * theo_eff * AR))));
       const float4 wcl_coeffs_3d = alpha_var_ratio * wcl_coeffs_2d;
 
 
