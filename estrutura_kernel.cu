@@ -188,7 +188,7 @@ __global__ void stage_estrutura(
       bool ismax = x_c > x_cmax;
       x_c = (float) (ismin) * (x_cmin) + (float) (ismax) * (x_cmax) + (float) (! (ismin || ismax)) * x_c;
 
-      XCG_atual = (x_c - x_c0) * (m_c / m_total);
+      XCG_atual += (x_c - x_c0) * (m_c / m_total);
     }
 
     XCG_atual = XCG_atual / ((float) (abs(XCG_atual - XCG_alvo) < 0.01f));
