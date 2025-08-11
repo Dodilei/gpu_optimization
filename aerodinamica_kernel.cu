@@ -122,19 +122,19 @@ __global__ void stage_aerodinamica(
       const float4 CDK = wcd_coeffs_2d + make_float4(CD_0,0.0f,0.0f,0.0f);
 
       const float Q = 1.0f / (theo_eff * k_fuse);
-      const float4 KI = 0.38*CDK + make_float4(Q,0.0f,0.0f,0.0f);
+      const float4 KI = 0.38*CDK + make_float4(Q/(PI*AR),0.0f,0.0f,0.0f);
 
       CLW.x = internal_sum(wcl_coeffs_3d*powers4(aL0));
       CDW.x = internal_sum((CDK + phi*CLW.x*CLW.x*KI)*powers4(aL0));
 
       CLW.y = internal_sum(wcl_coeffs_3d*powers4(0));
-      CDW.y = internal_sum((CDK + phi*CLW.x*CLW.x*KI)*powers4(0));
+      CDW.y = internal_sum((CDK + phi*CLW.y*CLW.y*KI)*powers4(0));
 
       CLW.z = internal_sum(wcl_coeffs_3d*powers4(a1));
-      CDW.z = internal_sum((CDK + phi*CLW.x*CLW.x*KI)*powers4(a1));
+      CDW.z = internal_sum((CDK + phi*CLW.z*CLW.z*KI)*powers4(a1));
 
       CLW.w = internal_sum(wcl_coeffs_3d*powers4(a2));
-      CDW.w = internal_sum((CDK + phi*CLW.x*CLW.x*KI)*powers4(a2));
+      CDW.w = internal_sum((CDK + phi*CLW.w*CLW.w*KI)*powers4(a2));
     }
 
     CLW = fuse_ratio*CLW;
