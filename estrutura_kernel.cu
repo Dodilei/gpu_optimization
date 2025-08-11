@@ -59,7 +59,7 @@ __global__ void stage_estrutura(
   const float S_ev,
   const float XACW_norm,
   const float CL_amax,
-  const float Lmax_eh,
+  const float CL_amax_eh,
   const float XCG_norm,
   const int N
 ) {
@@ -73,9 +73,9 @@ __global__ void stage_estrutura(
     constexpr float rho_wlong = 1500.0f;
     constexpr float rho_ehlong = 1500.0f;
 
-    constexpr float K_sigma_tail = 0.0f;
-    constexpr float K_sigma_wing = 0.0f;
-    constexpr float K_sigma_eh = 0.0f;
+    constexpr float K_sigma_tail = 0.0015;
+    constexpr float K_sigma_wing = 0.0004f;
+    constexpr float K_sigma_eh = 0.001066f;
 
     constexpr float K_A_tail = 2.0f*PI;
     constexpr float K_A_wlong = 2.0f*PI;
@@ -147,14 +147,14 @@ __global__ void stage_estrutura(
     const float mass_wing = phi_wing*S_wing + mass_wlong + 2*mass_wservo;
     const float x_wing = XACW_norm*MAC;
 
-    const float mass_ehlong = b_eh*rho_ehlong*K_A_ehlong*pow(t_ehlong, 0.5f)*K_sigma_eh*pow(b_eh*Lmax_eh, 0.5f);
+    const float mass_ehlong = b_eh*rho_ehlong*K_A_ehlong*pow(t_ehlong, 0.5f)*K_sigma_eh*pow(b_eh*S_eh*CL_amax_eh, 0.5f);
     const float mass_eh = phi_eh*S_eh + mass_ehlong + mass_ehservo;
     const float x_eh = XACH_norm*MAC;
 
     const float mass_ev = phi_ev*S_ev + 2*mass_evservo;
     const float x_ev = x_eh;
 
-    const float mass_tail = (XACH_norm-0.8f)*MAC*rho_tail*K_A_tail*pow(t_tail, 0.5f)*K_sigma_tail*pow(XACH_norm*MAC*Lmax_eh, 0.5f);
+    const float mass_tail = (XACH_norm-0.8f)*MAC*rho_tail*K_A_tail*pow(t_tail, 0.5f)*K_sigma_tail*pow(XACH_norm*MAC*S_eh*CL_amax_eh, 0.5f);
     const float x_tail = 0.5f*(XACH_norm-0.8f)*MAC + 0.8f*MAC;
 
 
