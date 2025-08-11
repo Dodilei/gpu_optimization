@@ -5,9 +5,19 @@ __forceinline__ __device__ float3 operator+(const float3& a, const float3& b)
     return make_float3(a.x+b.x, a.y+b.y, a.z+b.z);
 }
 
+__forceinline__ __device__ float4 operator+(const float4& a, const float4& b)
+{
+    return make_float4(a.x+b.x, a.y+b.y, a.z+b.z, a.w+b.w);
+}
+
 __forceinline__ __device__ float3 operator*(const float& a, const float3& b)
 {
     return make_float3(a*b.x, a*b.y, a*b.z);
+}
+
+__forceinline__ __device__ float4 operator*(const float& a, const float4& b)
+{
+    return make_float4(a*b.x, a*b.y, a*b.z, a*b.w);
 }
 
 __forceinline__ __device__ float4 operator*(const float4& a, const float4& b)
@@ -51,23 +61,24 @@ __forceinline__ __device__ float3 powers3(const float& a)
 }
 
 extern "C" {
-__global__ void stage_estabilidade1(
+__global__ void stage_aerodinamica(
   float* output,
   const int* num_vars,
   const float* scale_params,
   const float* const_params,
-  const float4 wcl2d_coeffs,
-  const float4 wcd2d_coeffs,
+  const float4 wcl_coeffs_2d,
+  const float4 wcd_coeffs_2d,
   const float alpha_var_2d,
   const float aL0,
   const float a1,
   const float a2,
   const int N
 ) {
-    constexpr width_fuse_norm = 0.14/2.4;
-    constexpr k_fuse = 1.0f - 2*pow(width_fuse_norm, 2);
-    constexpr fuse_ratio = 1.0f - width_fuse_norm;
-    constexpr swet_ratio = 2.0f;
+    constexpr float phi = 1.1;
+    constexpr float swet_ratio = 2.0f;
+    constexpr float width_fuse_norm = 0.14/2.4;
+    const float k_fuse = 1.0f - 2*pow(width_fuse_norm, 2);
+    const float fuse_ratio = 1.0f - width_fuse_norm;
 
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -94,8 +105,8 @@ __global__ void stage_estabilidade1(
     const float AR = params[0];
     const float afil = params[1];
 
-    float3 CLW;
-    float3 CDW;
+    float4 CLW;
+    float4 CDW;
 
     // TODO conferir incidência da asa
     {
@@ -103,7 +114,7 @@ __global__ void stage_estabilidade1(
       const float theo_eff = 1.0f/(1.0f+f_lambda*AR);
 
       const float alpha_var_ratio = 1.0f / (1.0f + (alpha_var_2d / (PI * theo_eff * AR)));
-      const float wcl_coeffs_3d = alpha_var_ratio * wcl_coeffs_2d;
+      const float4 wcl_coeffs_3d = alpha_var_ratio * wcl_coeffs_2d;
 
 
       const float CD_0 = 0.0055f * swet_ratio;
