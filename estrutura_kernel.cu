@@ -1,4 +1,4 @@
-#DEFINE PI 3.14159f
+#define PI 3.14159f
 
 __forceinline__ __device__ float3 operator+(const float3& a, const float3& b)
 {
@@ -56,6 +56,7 @@ __global__ void stage_estrutura(
   const int* num_vars, // AR, b_wing, seh_ratio, XACH_norm
   const float* scale_params,
   const float* const_params,
+  const float S_ev,
   const float XACW_norm,
   const float CL_amax,
   const float Lmax_eh,
@@ -76,6 +77,9 @@ __global__ void stage_estrutura(
     constexpr float K_sigma_wing = 0.0f;
     constexpr float K_sigma_eh = 0.0f;
 
+    constexpr float K_A_wlong = 0.0f;
+    constexpr float K_A_ehlong = 0.0f;
+
     constexpr float t_tail = 0.5f;
     constexpr float t_wlong = 0.5f;
     constexpr float t_ehlong = 0.0f;
@@ -95,9 +99,9 @@ __global__ void stage_estrutura(
     constexpr float comp_xmin[5] = {-0.200, -0.250, -0.300, -0.350,  xmin_fuse};
     constexpr float comp_xmax[5] = { 0.200,  0.600,  0.000,  0.100,  xmax_fuse};
 
-    constexpr float comp_xmid[5];
+    float comp_xmid[5];
     #pragma unroll
-    for (int comp = 0; i < n_comps; ++comp) {
+    for (int comp = 0; comp < n_comps; ++comp) {
       comp_xmid[comp] = 0.5f*(comp_xmin[comp] + comp_xmax[comp]);
     }
 
@@ -134,8 +138,7 @@ __global__ void stage_estrutura(
     const float S_wing = MAC*b_wing;
 
     const float S_eh = S_wing*seh_ratio;
-    const float b_eh = pow(S_wing*AR, 0.5f);
-    const float MAC_eh = b_eh/AR_eh;
+    const float b_eh = pow(S_eh*AR_eh, 0.5f);
 
     const float XCG_alvo = XCG_norm*MAC;
 
