@@ -53,7 +53,7 @@ __forceinline__ __device__ float3 powers3(const float& a)
 extern "C" {
 __global__ void stage_estrutura(
   float* output,
-  const int* num_vars, // AR, b_wing, seh_ratio, XACH_norm
+  const int* num_vars, 
   const float* scale_params,
   const float* const_params,
   const float S_ev,
