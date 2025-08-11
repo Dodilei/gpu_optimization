@@ -65,33 +65,33 @@ __global__ void stage_estrutura(
 ) {
     constexpr float long_perc = 0.8f;
 
-    constexpr float phi_wing = 0.0f;
-    constexpr float phi_eh = 0.0f;
-    constexpr float phi_ev = 0.0f;
+    constexpr float phi_wing = 0.5f;
+    constexpr float phi_eh = 0.5f;
+    constexpr float phi_ev = 0.5f;
 
-    constexpr float rho_tail = 0.0f;
-    constexpr float rho_wlong = 0.0f;
-    constexpr float rho_ehlong = 0.0f;
+    constexpr float rho_tail = 1500.0f;
+    constexpr float rho_wlong = 1500.0f;
+    constexpr float rho_ehlong = 1500.0f;
 
     constexpr float K_sigma_tail = 0.0f;
     constexpr float K_sigma_wing = 0.0f;
     constexpr float K_sigma_eh = 0.0f;
 
-    constexpr float K_A_wlong = 0.0f;
-    constexpr float K_A_ehlong = 0.0f;
+    constexpr float K_A_tail = 2.0f*PI;
+    constexpr float K_A_wlong = 2.0f*PI;
+    constexpr float K_A_ehlong = 2.0f*PI;
 
-    constexpr float t_tail = 0.5f;
-    constexpr float t_wlong = 0.5f;
-    constexpr float t_ehlong = 0.0f;
+    constexpr float t_tail = 0.0005f;
+    constexpr float t_wlong = 0.0005f;
+    constexpr float t_ehlong = 0.001f;
 
-    constexpr float mass_wservo = 0.0f;
-    constexpr float mass_ehservo = 0.0f;
-    constexpr float mass_evservo = 0.0f;
+    constexpr float mass_wservo = 0.012f;
+    constexpr float mass_ehservo = 0.020f;
+    constexpr float mass_evservo = 0.009f;
 
-    constexpr float mass_fuse = 0.0f;
+    constexpr float mass_fuse = 0.800f;
     constexpr float xmin_fuse = 0.0f;
-    constexpr float xmax_fuse = 0.0f;
-
+    constexpr float xmax_fuse = 0.4f;
 
     constexpr int n_comps = 5;
     //                               Bat. P, Bat. C, ESC,   Motor+H, Fuse
@@ -154,7 +154,7 @@ __global__ void stage_estrutura(
     const float mass_ev = phi_ev*S_ev + 2*mass_evservo;
     const float x_ev = x_eh;
 
-    const float mass_tail = (XACH_norm-0.8f)*MAC*rho_tail*2.0f*PI*pow(t_tail, 0.5f)*K_sigma_tail*pow(XACH_norm*MAC*Lmax_eh, 0.5f);
+    const float mass_tail = (XACH_norm-0.8f)*MAC*rho_tail*K_A_tail*pow(t_tail, 0.5f)*K_sigma_tail*pow(XACH_norm*MAC*Lmax_eh, 0.5f);
     const float x_tail = 0.5f*(XACH_norm-0.8f)*MAC + 0.8f*MAC;
 
 
