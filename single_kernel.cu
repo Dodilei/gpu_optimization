@@ -1,6 +1,6 @@
-#define PI 3.14159
-#define DEG2RAD 0.017453
-#define IDEG2RAD 57.2957
+#define PI 3.14159f
+#define DEG2RAD 0.017453f
+#define IDEG2RAD 57.2957f
 
 __forceinline__ __device__ float3 operator+(const float3& a, const float3& b)
 {
@@ -75,7 +75,7 @@ __forceinline__ __device__ void RK4(LambdaType dfunc, float3& y0, const float& x
         float3 k3 = dfunc(y_prev + (dx/2.0f)*k2);
         float3 k4 = dfunc(y_prev +  dx      *k3);
 
-        y0 = y_prev + (dx/6.0f) * (k1 + 2*k2 + 2*k3 + k4);
+        y0 = y_prev + (dx/6.0f) * (k1 + 2.0f*k2 + 2.0f*k3 + k4);
     }
 }
 
@@ -98,7 +98,10 @@ __global__ void stage_single_kernel(
   const float dCLHdaH_2d,
   const float a0L,
   const float amax,
-  const int N
+  const int N,
+  bool* criteria_1,
+  bool* criteria_2,
+  bool* criteria_3
 ) {
     // Parâmetros de sistema
     constexpr float rho = 1.118f;
@@ -112,8 +115,8 @@ __global__ void stage_single_kernel(
 
     // Parâmetros construtivos
     constexpr float swet_ratio = 2.62f;
-    constexpr float width_fuse_norm = 0.14/2.4;
-    constexpr float sev_ratio = 0.054; //TODO
+    constexpr float width_fuse_norm = 0.14f/2.4f;
+    constexpr float sev_ratio = 0.054f; //TODO
 
     // Efeito solo
     constexpr float efsolo_lift = 1.1f;
@@ -121,24 +124,24 @@ __global__ void stage_single_kernel(
     constexpr float efsolo_dh = 0.98f;
 
     // Margem estática
-    constexpr float ME = 0.08;
+    constexpr float ME = 0.08f;
 
     // Parâmetros de efeito aerodinâmico EH
-    constexpr float nh0 = 0.9;
-    constexpr float YH_norm = 0.3;
+    constexpr float nh0 = 0.9f;
+    constexpr float YH_norm = 0.3f;
 
     // Parâmetros de fluxo de propulsão
-    constexpr float q_dec_est = 0.5*1.118*10*10;
-    constexpr float propwash_ratio = 0.08;
-    constexpr float prop_pressure_ratio_dec = 3;
-    constexpr float prop_pressure_ratio_cruz = 1.5;
-    constexpr float eh_affected_ratio = 0.5;
-    constexpr float ZT = 0.075;
-    constexpr float ip = 2;
+    constexpr float q_dec_est = 0.5f*1.118f*10.0f*10.0f;
+    constexpr float propwash_ratio = 0.08f;
+    constexpr float prop_pressure_ratio_dec = 3.0f;
+    constexpr float prop_pressure_ratio_cruz = 1.5f;
+    constexpr float eh_affected_ratio = 0.5f;
+    constexpr float ZT = 0.075f;
+    constexpr float ip = 2.0f;
 
     // Fatores de flap simples (profundor)
-    constexpr float flap_dcl = efsolo_lift*0.6*0.85*0.9*0.0785*0.9;
-    constexpr float flap_cd_factor = 0.25*0.66*0.3; // Erik Olson, NASA (cf/c=0.3)
+    constexpr float flap_dcl = efsolo_lift*0.6f*0.85f*0.9f*0.0785f*0.9f;
+    constexpr float flap_cd_factor = 0.25f*0.66f*0.3f; // Erik Olson, NASA (cf/c=0.3)
 
     // Comprimento percentual da longarina
     constexpr float long_perc = 0.8f;
@@ -178,9 +181,9 @@ __global__ void stage_single_kernel(
 
     constexpr int n_comps = 5;
     //                               Bat. P, Bat. C, ESC,   Motor+H, Fuse
-    constexpr float comp_mass[5] = { 0.467,  0.150,  0.050,  0.450,  mass_fuse};
-    constexpr float comp_xmin[5] = {-0.200, -0.250, -0.300, -0.350,  xmin_fuse};
-    constexpr float comp_xmax[5] = { 0.200,  0.600,  0.000,  0.100,  xmax_fuse};
+    constexpr float comp_mass[5] = { 0.467f,  0.150f,  0.050f,  0.450f,  mass_fuse};
+    constexpr float comp_xmin[5] = {-0.200f, -0.250f, -0.300f, -0.350f,  xmin_fuse};
+    constexpr float comp_xmax[5] = { 0.200f,  0.600f,  0.000f,  0.100f,  xmax_fuse};
 
 
     // --- 3D Index Calculation ---
@@ -245,7 +248,7 @@ __global__ void stage_single_kernel(
     { // SCOPE AERODINAMICA 1
       // TODO conferir incidência da asa -> criar alpha_wing com incidencia
       {// SCOPE WING
-        const float k_fuse = 1.0f - 2*pow(width_fuse_norm, 2);
+        const float k_fuse = 1.0f - 2.0f*pow(width_fuse_norm, 2);
         const float fuse_ratio = 1.0f - width_fuse_norm;
 
         const float f_lambda = 0.0524f * pow(afil, 4) - 0.15f * pow(afil, 3) + 0.1659f * pow(afil, 2) - 0.0706f * afil + 0.0119f;
@@ -259,7 +262,7 @@ __global__ void stage_single_kernel(
         const float4 CDK = wcd_coeffs_2d + make_float4(CD_0,0.0f,0.0f,0.0f);
 
         const float Q = 1.0f / (theo_eff * k_fuse);
-        const float4 KI = 0.38*CDK + make_float4(Q/(PI*AR),0.0f,0.0f,0.0f);
+        const float4 KI = 0.38f*CDK + make_float4(Q/(PI*AR),0.0f,0.0f,0.0f);
 
         dCMWda_3d = dCMWda_2d;
 
@@ -288,7 +291,7 @@ __global__ void stage_single_kernel(
         const float KH = (1.0f - (YH_norm/AR))*pow((2.0f*(XACH_norm-XACW_norm)/AR),(-1.0f/3.0f));  
 
         const float downwash_ratio = pow(4.44f*(KA*Kl*KH),1.19f);
-        eh_aoa_rate_ratio = (1 - downwash_ratio - propwash_ratio);     
+        eh_aoa_rate_ratio = (1.0f - downwash_ratio - propwash_ratio);     
 
         alpha_eh.x = (alpha_wing.x + ih) - downwash_ratio*(alpha_wing.x - alpha_wing.y) - propwash_ratio*(alpha_wing.x + ip);
         alpha_eh.y = (alpha_wing.y + ih) - downwash_ratio*(alpha_wing.y - alpha_wing.y) - propwash_ratio*(alpha_wing.y + ip);
@@ -309,7 +312,7 @@ __global__ void stage_single_kernel(
 
         const float4 CDK = hcd_coeffs_2d;
 
-        const float4 KI = 0.38*CDK + make_float4(1.0f/(theo_eff*PI*AR_eh),0.0f,0.0f,0.0f);
+        const float4 KI = 0.38f*CDK + make_float4(1.0f/(theo_eff*PI*AR_eh),0.0f,0.0f,0.0f);
 
         CLH.x = internal_sum(hcl_coeffs_3d*powers4(alpha_eh.x));
         CDH.x = internal_sum((CDK + efsolo_dh*CLH.x*CLH.x*KI)*powers4(alpha_eh.x));
@@ -317,10 +320,10 @@ __global__ void stage_single_kernel(
         CLH.y = internal_sum(hcl_coeffs_3d*powers4(alpha_eh.y));
         CDH.y = internal_sum((CDK + efsolo_dh*CLH.y*CLH.y*KI)*powers4(alpha_eh.y));
 
-        CLH.z = 0.0f;
+        CLH.z = internal_sum(hcl_coeffs_3d*powers4(alpha_eh.z));
         CDH.z = internal_sum((CDK + efsolo_dh*CLH.z*CLH.z*KI)*powers4(alpha_eh.z));
 
-        CLH.w = 0.0f;
+        CLH.w = internal_sum(hcl_coeffs_3d*powers4(alpha_eh.w));
         CDH.w = internal_sum((CDK + efsolo_dh*CLH.w*CLH.w*KI)*powers4(alpha_eh.w));
 
         CLH = efsolo_lift*CLH;
@@ -330,7 +333,7 @@ __global__ void stage_single_kernel(
     float XCG_norm;
     { // SCOPE ESTABILIDADE 1 
     // TODO conferir, apenas aqui não tem efeito solo                     
-      const float eh_dpressure_ratio = nh0*(1 + eh_affected_ratio*prop_pressure_ratio_cruz);
+      const float eh_dpressure_ratio = nh0*(1.0f + eh_affected_ratio*prop_pressure_ratio_cruz);
 
       const float dCLHda_eff = eh_dpressure_ratio * seh_ratio * dCLHda_3d;                                    
 
@@ -347,6 +350,52 @@ __global__ void stage_single_kernel(
 
     const float S_ev = S_wing*sev_ratio;
 
+    bool prof_def_allowed;
+    { // SCOPE ESTABILIDADE 2 
+
+      const float eh_dpressure_ratio = nh0*(1.0f + eh_affected_ratio*prop_pressure_ratio_dec);
+      const float eh_eff_arm = eh_dpressure_ratio * seh_ratio *(XCG_norm - XACH_norm);
+
+      const float CMT = -(T0/q_dec_est - (2.0f*a)/rho)*(ZT/MAC);
+
+      { // SCOPE a1
+        const float CMLW_a1 = (XCG_norm - XACW_norm)*(CLW.z);
+        const float CM_a1 = CMW.z + CMLW_a1 + CMT;
+        const float CMH_a1 = eh_eff_arm*CLH.z;
+
+        CLH.z = -CM_a1/eh_eff_arm;
+
+        const float CMt_a1 = CM_a1 + CMH_a1;
+        const float req_dclh_a1 = CMt_a1/(eh_eff_arm);
+
+        const float prof_def_a1 = flap_dcl*((float) (req_dclh_a1 <= 0.48f) * (1030.0f*req_dclh_a1) + (float) (req_dclh_a1 > 0.48f) * (6250.0f*(req_dclh_a1 - 0.48f) + 494.4f));
+        const float prof_drag_increase_a1 = flap_cd_factor*dCLHdaH_2d*prof_def_a1*prof_def_a1*DEG2RAD;
+
+        CDH.z += prof_drag_increase_a1;
+      }
+
+      { // SCOPE a2
+        const float CMLW_a2 = (XCG_norm - XACW_norm)*(CLW.w);
+        const float CM_a2 = CMW.w + CMLW_a2 + CMT;
+        const float CMH_a2 = eh_eff_arm*CLH.w;
+
+        CLH.w = -CM_a2/eh_eff_arm;
+
+        const float CMt_a2 = CM_a2 + CMH_a2;
+        const float req_dclh_a2 = CMt_a2/(eh_eff_arm);
+
+        const float prof_def_a2 = flap_dcl*((float) (req_dclh_a2 <= 0.48f) * (1030.0f*req_dclh_a2) + (float) (req_dclh_a2 > 0.48f) * (6250.0f*(req_dclh_a2 - 0.48f) + 494.4f));
+        const float prof_drag_increase_a2 = flap_cd_factor*dCLHdaH_2d*prof_def_a2*prof_def_a2*DEG2RAD;
+
+        CDH.w += prof_drag_increase_a2;
+
+        prof_def_allowed = prof_def_a2 < 35.0f;
+      }
+
+    }
+
+
+    bool XCG_attainable;
     float PV;
     { // SCOPE ESTRUTURAS 
       float comp_xmid[5];
@@ -357,18 +406,21 @@ __global__ void stage_single_kernel(
 
       const float XCG_alvo = XCG_norm*MAC;
 
-      const float mass_wlong = long_perc*b_wing*rho_wlong*K_A_wlong*pow(t_wlong, 0.5f)*K_sigma_wing*pow(b_wing*S_wing*CLW.w, 0.5f);
+      const float w_corr_factor = K_sigma_wing*pow(b_wing*S_wing*(0.1f+CLW.w), 0.5f);
+      const float mass_wlong = long_perc*b_wing*rho_wlong*K_A_wlong*pow(t_wlong, 0.5f)*w_corr_factor;
       const float mass_wing = phi_wing*S_wing + mass_wlong + 2*mass_wservo;
       const float x_wing = XACW_norm*MAC;
 
-      const float mass_ehlong = b_eh*rho_ehlong*K_A_ehlong*pow(t_ehlong, 0.5f)*K_sigma_eh*pow(b_eh*S_eh*CLH.w, 0.5f);
+      const float eh_corr_factor = K_sigma_eh*pow(b_eh*S_eh*(0.1f+abs(CLH.w)), 0.5f);
+      const float mass_ehlong = b_eh*rho_ehlong*K_A_ehlong*pow(t_ehlong, 0.5f)*eh_corr_factor;
       const float mass_eh = phi_eh*S_eh + mass_ehlong + mass_ehservo;
       const float x_eh = XACH_norm*MAC;
 
-      const float mass_ev = phi_ev*S_ev + 2*mass_evservo;
+      const float mass_ev = phi_ev*S_ev + 2.0f*mass_evservo;
       const float x_ev = x_eh;
 
-      const float mass_tail = (XACH_norm-0.8f)*MAC*rho_tail*K_A_tail*pow(t_tail, 0.5f)*K_sigma_tail*pow(XACH_norm*MAC*S_eh*CLH.w, 0.5f);
+      const float tail_corr_factor = K_sigma_tail*pow(XACH_norm*MAC*S_eh*(0.1f+abs(CLH.w)), 0.5f);
+      const float mass_tail = (XACH_norm-0.8f)*MAC*rho_tail*K_A_tail*pow(t_tail, 0.5f)*tail_corr_factor;
       const float x_tail = 0.5f*(XACH_norm-0.8f)*MAC + 0.8f*MAC;
 
       // P. ref. -> asa
@@ -404,60 +456,18 @@ __global__ void stage_single_kernel(
         XCG_atual += (x_c - x_c0) * (m_c / m_total);
       }
 
-      XCG_atual = XCG_atual / ((float) (abs(XCG_atual - XCG_alvo) < 0.01f));
+      XCG_attainable = (abs(XCG_atual - XCG_alvo) < 0.01f);
 
       XCG_norm = XCG_atual/MAC;
       PV = m_total;
     }
 
-    bool prof_def_allowed;
-    { // SCOPE ESTABILIDADE 2 
-
-      const float eh_dpressure_ratio = nh0*(1.0f + eh_affected_ratio*prop_pressure_ratio_dec);
-      const float eh_eff_arm = eh_dpressure_ratio * seh_ratio *(XCG_norm - XACH_norm);
-
-      const float CMT = -(T0/q_dec_est - (2.0f*a)/rho)*(ZT/MAC);
-
-      { // SCOPE a1
-        const float CMLW_a1 = (XCG_norm - XACW_norm)*(CLW.z);
-        const float CM_a1 = CMW.z + CMLW_a1 + CMT;
-        const float CMH_a1 = eh_eff_arm*CLH.z;
-
-        CLH.z = CM_a1/eh_eff_arm;
-
-        const float CMt_a1 = CM_a1 + CMH_a1;
-        const float req_dclh_a1 = CMt_a1/(eh_eff_arm);
-
-        const float prof_def_a1 = flap_dcl*((float) (req_dclh_a1 <= 0.48f) * (1030.0f*req_dclh_a1) + (float) (req_dclh_a1 > 0.48f) * (6250.0f*(req_dclh_a1 - 0.48f) + 494.4f));
-        const float prof_drag_increase_a1 = flap_cd_factor*dCLHdaH_2d*prof_def_a1*prof_def_a1*DEG2RAD;
-
-        CDH.z += prof_drag_increase_a1;
-      }
-
-      { // SCOPE a2
-        const float CMLW_a2 = (XCG_norm - XACW_norm)*(CLW.w);
-        const float CM_a2 = CMW.w + CMLW_a2 + CMT;
-        const float CMH_a2 = eh_eff_arm*CLH.w;
-
-        CLH.w = CM_a2/eh_eff_arm;
-
-        const float CMt_a2 = CM_a2 + CMH_a2;
-        const float req_dclh_a2 = CMt_a2/(eh_eff_arm);
-
-        const float prof_def_a2 = flap_dcl*((float) (req_dclh_a2 <= 0.48f) * (1030.0f*req_dclh_a2) + (float) (req_dclh_a2 > 0.48f) * (6250.0f*(req_dclh_a2 - 0.48f) + 494.4f));
-        const float prof_drag_increase_a2 = flap_cd_factor*dCLHdaH_2d*prof_def_a2*prof_def_a2*DEG2RAD;
-
-        CDH.w += prof_drag_increase_a2;
-
-        prof_def_allowed = prof_def_a2 < 35;
-      }
-
-    }
 
     const float4 CLG = CLW + seh_ratio*CLH;
     const float4 CDG = CDW + seh_ratio*CDH;
 
     float result_PF;
+    bool minimum_CP;
     { // SCOPE DESEMPENHO
 
       // Define function f
@@ -509,14 +519,14 @@ __global__ void stage_single_kernel(
           return fmaxf(0.0f, y0.z) - 0.9f;
       };
 
-      float p1 = 1*g_acc;
+      float p1 = (5.0f+PV)*g_acc;
       const float p1_o = p1;
-      float p2 = 20*g_acc;
+      float p2 = 25.0f*g_acc;
       
       float f_p1 = f(p1);
 
       #pragma unroll
-      for (int i = 0; i < 8; ++i) {
+      for (int i = 0; i < 30; ++i) {
           float p3 = p1 + (p2 - p1) * 0.5f; // More stable than (a+b)/2
           float f_p3 = f(p3);
 
@@ -535,19 +545,23 @@ __global__ void stage_single_kernel(
       }
 
       // The root is the midpoint of the final, narrow interval.
-      const float TOW = (float)(f_p1 > 0.0f) * (p1 + (p2 - p1) * 0.5f) + (float)(f_p1 <= 0.0f) * (p1_o);
+      const float TOW = (float)(f_p1 > 0.0f) * (p1 + (p2 - p1) * 0.5f) + (float)(f_p1 == 0.0f) * (p1_o);
+      minimum_CP = (f_p1 > 0.0f);
       
       const float TOM = TOW/g_acc;
 
-      const float delta_b = b_wing - 4;
-      const float delta_W = dW_max - 600;
+      const float delta_b = b_wing - 4.0f;
+      const float delta_W = dW_max - 600.0f;
 
-      const float PEE = 25*((TOM/PV) - 1);
+      const float PEE = 25.0f*((TOM/PV) - 1.0f);
 
       // Example scalar function G(F, x, w)
       result_PF = max(0.0f, PEE - max(0.0, 100.0f*delta_b + ((float) (delta_b > 0.05f) * 20.0f)) - max(0.0f, 0.5f*delta_W));
     } // END SCOPE DESEMPENHO
 
-    output[idx] = result_PF;
+    criteria_1[idx] = XCG_attainable;
+    criteria_2[idx] = prof_def_allowed;
+    criteria_3[idx] = minimum_CP;
+    output[idx] = (float) XCG_attainable * (float) prof_def_allowed * result_PF;
 }
 }
