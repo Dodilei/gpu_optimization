@@ -117,6 +117,8 @@ __global__ void stage_single_kernel(
     constexpr float swet_ratio = 2.62f;
     constexpr float width_fuse_norm = 0.14f/2.4f;
     constexpr float sev_ratio = 0.054f; //TODO
+    constexpr float a1 = 11;
+    constexpr float Y_a2_norm = 0.2;
 
     // Efeito solo
     constexpr float efsolo_lift = 1.1f;
@@ -237,11 +239,10 @@ __global__ void stage_single_kernel(
     const float seh_ratio   = params[5];
     const float XACH_norm   = params[6];
     const float b_wing      = params[7];
-    const float a1          = params[8];
-    const float k01         = params[9];
-    const float amax_ratio  = params[10];
+    const float k01         = params[8];
+    const float amax_ratio  = params[9];
 
-    const float4 alpha_wing = make_float4(0.0f+iw, a0L, a1+iw, amax*amax_ratio);
+    const float4 alpha_wing = make_float4(0.0f+iw, a0L, a1+iw, amax_ratio*amax);
 
     float4 CLW, CDW, CMW, CLH, CDH, alpha_eh;
     float dCLWda_3d, dCLHda_3d, dCMWda_3d, eh_aoa_rate_ratio;
@@ -472,31 +473,30 @@ __global__ void stage_single_kernel(
 
       // Define function f
       auto f = [=] (float P) -> float {
-
-          float V12 = sqrtf((2.0f*P)/(rho*S_wing*CLG.z));         // Vel. de estol em alpha_1
-          float V01 = V12*k01;                               // Vel. do estágio 1
-
-          // Parâmetros de aceleração nos estágios 0 e 1
+          // Parâmetros de aceleração no estágio 1
           float A0 = (g_acc/P)*(T0 - P*mu);
-          float A1 = A0;
           float B0 = (g_acc/P)*(0.5f*rho*S_wing*(CDG.x  - mu*CLG.x ) + a);
-          float B1 = (g_acc/P)*(0.5f*rho*S_wing*(CDG.z - mu*CLG.z) + a);
 
-          // Deslocamento nos estágios 0 e 1
-          float disp_0 = (0.5f/B0)*logf((A0)           /(A0-B0*V01*V01));
-          float disp_1 = (0.5f/B1)*logf((A1-B1*V01*V01)/(A1-B1*V12*V12));
+          float Vst = sqrtf((2.0f*P)/(rho*S_wing*CLG.z));         // Vel. de estol em alpha_1
+          float V01 = Vst*k01;                                    // Vel. do estágio 1
+
+          // Deslocamento no estágio 1
+          float disp_0 = (0.5f/B0)*logf((A0)/(A0-B0*V01*V01));
 
           // Deslocamento restante para o estágio 2 (max. 55m)
-          float disp_2 = fmaxf(55.0f - disp_0 - disp_1, 0.0f);
+          float disp_2 = fmaxf(55.0f - disp_0, 0.0f);
 
           // Função de entrada de RK4, cálculo das derivadas de movimento
           auto dfunc = [=] (float3 y) -> float3 {
 
-            float accyp = (g_acc/P)*(0.5f*rho*S_wing*CLG.w*y.x*y.x);           // Acc. em y (coord. avião)
+            float CLG_dec = (float) ((y.z/MAC) <= Y_a2_norm) * CLG.z + (float) ((y.z/MAC) > Y_a2_norm) * CLG.w;
+            float CDG_dec = (float) ((y.z/MAC) <= Y_a2_norm) * CDG.z + (float) ((y.z/MAC) > Y_a2_norm) * CDG.w;
 
-            float acc_lift = -(g_acc/P)*(0.5f*rho*S_wing*CDG.w*y.x*y.x);       // Acc. da sust. (coord. avião)
+            float accyp = (g_acc/P)*(0.5f*rho*S_wing*CLG_dec*y.x*y.x);           // Acc. em y (coord. avião)
+
+            float acc_drag = -(g_acc/P)*(0.5f*rho*S_wing*CDG_dec*y.x*y.x);       // Acc. da sust. (coord. avião)
             float acc_prop = (g_acc/P)*(T0 - a*(y.x*y.x+y.y*y.y));        // Acc. da propulsão (coord. avião)
-            float accxp = acc_lift + acc_prop;                        // Acc. em x (coord. avião)
+            float accxp = acc_drag + acc_prop;                        // Acc. em x (coord. avião)
 
             float theta = atanf(y.y/y.x);                             // Angulo de voo (trajetória)
 
@@ -510,7 +510,7 @@ __global__ void stage_single_kernel(
           };
 
           // Vetor inicial (vx0, vy0, y0)
-          float3 y0 = make_float3(V12, 0.0f, 0.0f);
+          float3 y0 = make_float3(V01, 0.0f, 0.0f);
 
           // Aplicação de RK4
           RK4(dfunc, y0, disp_2);
