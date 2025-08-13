@@ -241,7 +241,7 @@ __global__ void stage_single_kernel(
     const float b_wing      = params[7];
     const float k01         = params[8];
 
-    const float a1_w = (float) ((a1+iw) < amax) * a1_w + (float) ((a1+iw) >= amax) * amax;
+    const float a1_w = (float) ((a1+iw) < amax) * (a1+iw) + (float) ((a1+iw) >= amax) * amax;
     const float4 alpha_wing = make_float4(0.0f+iw, a0L, a1_w, amax);
 
     float4 CLW, CDW, CMW, CLH, CDH, alpha_eh;
