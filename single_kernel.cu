@@ -240,9 +240,8 @@ __global__ void stage_single_kernel(
     const float XACH_norm   = params[6];
     const float b_wing      = params[7];
     const float k01         = params[8];
-    const float amax_ratio  = params[9];
 
-    const float4 alpha_wing = make_float4(0.0f+iw, a0L, a1+iw, amax_ratio*amax);
+    const float4 alpha_wing = make_float4(0.0f+iw, a0L, a1+iw, amax);
 
     float4 CLW, CDW, CMW, CLH, CDH, alpha_eh;
     float dCLWda_3d, dCLHda_3d, dCMWda_3d, eh_aoa_rate_ratio;
