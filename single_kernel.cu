@@ -263,7 +263,7 @@ __global__ void stage_single_kernel(
         const float4 wcl_coeffs_3d = alpha_var_ratio * wcl_coeffs_2d;
         dCLWda_3d = alpha_var_ratio * dCLWda_2d;
 
-        const float swet_ratio = 2.0f*(1.0f + seh_ratio + sev_ratio + 1.2f*width_fuse_norm)
+        const float swet_ratio = 2.0f*(1.0f + seh_ratio + sev_ratio + 1.2f*width_fuse_norm);
         const float CD_0 = 0.0055f * swet_ratio;
         const float4 CDK = wcd_coeffs_2d + make_float4(CD_0,0.0f,0.0f,0.0f);
 
@@ -503,7 +503,7 @@ __global__ void stage_single_kernel(
             float accyp = (g_acc/P)*(0.5f*rho*S_wing*CLG_dec*y.x*y.x);           // Acc. em y (coord. avião)
 
             float acc_drag = -(g_acc/P)*(0.5f*rho*S_wing*CDG_dec*y.x*y.x);       // Acc. da sust. (coord. avião)
-            float acc_prop = (g_acc/P)*(T_dec - a_dec*(y.x*y.x+y.y*y.y));        // Acc. da propulsão (coord. avião)
+            float acc_prop = (g_acc/P)*(T0_dec - a_dec*(y.x*y.x+y.y*y.y));        // Acc. da propulsão (coord. avião)
             float accxp = acc_drag + acc_prop;                        // Acc. em x (coord. avião)
 
             float theta = atanf(y.y/y.x);                             // Angulo de voo (trajetória)
