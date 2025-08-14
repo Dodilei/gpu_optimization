@@ -109,14 +109,16 @@ __global__ void stage_single_kernel(
     constexpr float mu = 0.04f;
 
     // Parâmetros propulsivos
-    constexpr float T0 = 40.0f;
-    constexpr float a = 0.1f;
+    constexpr float T0 = 43.0f;
+    constexpr float T600 = 33.26f;
+    constexpr float a = 0.0459f;
+    constexpr float a600 = 0.0f;
+    constexpr float vmax_corr = 14.566f;
     constexpr float dW_max = 600.0f;
 
     // Parâmetros construtivos
-    constexpr float swet_ratio = 2.62f;
     constexpr float width_fuse_norm = 0.14f/2.4f;
-    constexpr float sev_ratio = 0.054f; //TODO
+    constexpr float K_sev_ratio = 0.1296f;
     constexpr float a1 = 11;
     constexpr float Y_a2_norm = 0.2;
 
@@ -135,11 +137,11 @@ __global__ void stage_single_kernel(
     // Parâmetros de fluxo de propulsão
     constexpr float q_dec_est = 0.5f*1.118f*10.0f*10.0f;
     constexpr float propwash_ratio = 0.08f;
-    constexpr float prop_pressure_ratio_dec = 3.0f;
-    constexpr float prop_pressure_ratio_cruz = 1.5f;
+    constexpr float prop_pressure_ratio_dec = 3.6f;
+    constexpr float prop_pressure_ratio_cruz = 1.8f;
     constexpr float eh_affected_ratio = 0.5f;
     constexpr float ZT = 0.075f;
-    constexpr float ip = 2.0f;
+    constexpr float ip = 0.0f;
 
     // Fatores de flap simples (profundor)
     constexpr float flap_dcl = efsolo_lift*0.6f*0.85f*0.9f*0.0785f*0.9f;
@@ -149,9 +151,9 @@ __global__ void stage_single_kernel(
     constexpr float long_perc = 0.8f;
 
     // Densidade de área
-    constexpr float phi_wing = 0.5f;
-    constexpr float phi_eh = 0.5f;
-    constexpr float phi_ev = 0.5f;
+    constexpr float phi_wing = 0.534f;
+    constexpr float phi_eh = 0.832f;
+    constexpr float phi_ev = 1.072f;
 
     // Massa específica
     constexpr float rho_tail = 1500.0f;
@@ -159,9 +161,9 @@ __global__ void stage_single_kernel(
     constexpr float rho_ehlong = 1500.0f;
 
     // Constante de tensão
-    constexpr float K_sigma_tail = 0.0015;
-    constexpr float K_sigma_wing = 0.0004f;
-    constexpr float K_sigma_eh = 0.001066f;
+    constexpr float K_sigma_tail = 0.0023735f;
+    constexpr float K_sigma_wing = 0.0003179f;
+    constexpr float K_sigma_eh = 0.001414f;
 
     // Constante de área
     constexpr float K_A_tail = 2.0f*PI;
@@ -177,13 +179,13 @@ __global__ void stage_single_kernel(
     constexpr float mass_ehservo = 0.020f;
     constexpr float mass_evservo = 0.009f;
 
-    constexpr float mass_fuse = 0.800f;
-    constexpr float xmin_fuse = 0.0f;
+    constexpr float mass_fuse = 0.689f;
+    constexpr float xmin_fuse =-0.1f;
     constexpr float xmax_fuse = 0.4f;
 
     constexpr int n_comps = 5;
-    //                               Bat. P, Bat. C, ESC,   Motor+H, Fuse
-    constexpr float comp_mass[5] = { 0.467f,  0.150f,  0.050f,  0.450f,  mass_fuse};
+    //                               Bat. P, BatC+C, ESC,   Motor+H, Fuse
+    constexpr float comp_mass[5] = { 0.467f,  0.250f,  0.050f,  0.500f,  mass_fuse};
     constexpr float comp_xmin[5] = {-0.200f, -0.250f, -0.300f, -0.350f,  xmin_fuse};
     constexpr float comp_xmax[5] = { 0.200f,  0.600f,  0.000f,  0.100f,  xmax_fuse};
 
@@ -244,6 +246,8 @@ __global__ void stage_single_kernel(
     const float a1_w = (float) ((a1+iw) < amax) * (a1+iw) + (float) ((a1+iw) >= amax) * amax;
     const float4 alpha_wing = make_float4(0.0f+iw, a0L, a1_w, amax);
 
+    const float sev_ratio = K_sev_ratio/XACH_norm;
+
     float4 CLW, CDW, CMW, CLH, CDH, alpha_eh;
     float dCLWda_3d, dCLHda_3d, dCMWda_3d, eh_aoa_rate_ratio;
     { // SCOPE AERODINAMICA 1
@@ -259,6 +263,7 @@ __global__ void stage_single_kernel(
         const float4 wcl_coeffs_3d = alpha_var_ratio * wcl_coeffs_2d;
         dCLWda_3d = alpha_var_ratio * dCLWda_2d;
 
+        const float swet_ratio = 2.0f*(1.0f + seh_ratio + sev_ratio + 1.2f*width_fuse_norm)
         const float CD_0 = 0.0055f * swet_ratio;
         const float4 CDK = wcd_coeffs_2d + make_float4(CD_0,0.0f,0.0f,0.0f);
 
@@ -357,7 +362,7 @@ __global__ void stage_single_kernel(
       const float eh_dpressure_ratio = nh0*(1.0f + eh_affected_ratio*prop_pressure_ratio_dec);
       const float eh_eff_arm = eh_dpressure_ratio * seh_ratio *(XCG_norm - XACH_norm);
 
-      const float CMT = -(T0/q_dec_est - (2.0f*a)/rho)*(ZT/MAC);
+      const float CMT = -(T600/q_dec_est - (2.0f*a)/rho)*(ZT/MAC);
 
       { // SCOPE a1
         const float CMLW_a1 = (XCG_norm - XACW_norm)*(CLW.z);
@@ -420,7 +425,7 @@ __global__ void stage_single_kernel(
       const float mass_ev = phi_ev*S_ev + 2.0f*mass_evservo;
       const float x_ev = x_eh;
 
-      const float tail_corr_factor = K_sigma_tail*pow(XACH_norm*MAC*S_eh*(0.1f+abs(CLH.w)), 0.5f);
+      const float tail_corr_factor = K_sigma_tail*pow((XACH_norm-0.8f)*MAC*S_eh*(0.1f+abs(CLH.w)), 0.5f);
       const float mass_tail = (XACH_norm-0.8f)*MAC*rho_tail*K_A_tail*pow(t_tail, 0.5f)*tail_corr_factor;
       const float x_tail = 0.5f*(XACH_norm-0.8f)*MAC + 0.8f*MAC;
 
@@ -474,8 +479,8 @@ __global__ void stage_single_kernel(
       // Define function f
       auto f = [=] (float P) -> float {
           // Parâmetros de aceleração no estágio 1
-          float A0 = (g_acc/P)*(T0 - P*mu);
-          float B0 = (g_acc/P)*(0.5f*rho*S_wing*(CDG.x  - mu*CLG.x ) + a);
+          float A0 = (g_acc/P)*(T600 - P*mu);
+          float B0 = (g_acc/P)*(0.5f*rho*S_wing*(CDG.x  - mu*CLG.x ) + a600);
 
           float Vst = sqrtf((2.0f*P)/(rho*S_wing*CLG.z));         // Vel. de estol em alpha_1
           float V01 = Vst*k01;                                    // Vel. do estágio 1
@@ -489,13 +494,16 @@ __global__ void stage_single_kernel(
           // Função de entrada de RK4, cálculo das derivadas de movimento
           auto dfunc = [=] (float3 y) -> float3 {
 
+            float T0_dec = (float) (y.x < vmax_corr) * T600 + (float) (y.x >= vmax_corr) * T0;
+            float a_dec = (float) (y.x < vmax_corr) * a600 + (float) (y.x >= vmax_corr) * a;
+
             float CLG_dec = (float) ((y.z/MAC) <= Y_a2_norm) * CLG.z + (float) ((y.z/MAC) > Y_a2_norm) * CLG.w;
             float CDG_dec = (float) ((y.z/MAC) <= Y_a2_norm) * CDG.z + (float) ((y.z/MAC) > Y_a2_norm) * CDG.w;
 
             float accyp = (g_acc/P)*(0.5f*rho*S_wing*CLG_dec*y.x*y.x);           // Acc. em y (coord. avião)
 
             float acc_drag = -(g_acc/P)*(0.5f*rho*S_wing*CDG_dec*y.x*y.x);       // Acc. da sust. (coord. avião)
-            float acc_prop = (g_acc/P)*(T0 - a*(y.x*y.x+y.y*y.y));        // Acc. da propulsão (coord. avião)
+            float acc_prop = (g_acc/P)*(T_dec - a_dec*(y.x*y.x+y.y*y.y));        // Acc. da propulsão (coord. avião)
             float accxp = acc_drag + acc_prop;                        // Acc. em x (coord. avião)
 
             float theta = atanf(y.y/y.x);                             // Angulo de voo (trajetória)
